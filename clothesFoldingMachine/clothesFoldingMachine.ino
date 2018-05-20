@@ -1,8 +1,20 @@
 #include <SoftwareSerial.h>
+#include <Servo.h>
 
-#define baudrate 9600
+
+#define baudrate 9600 //baudrate da comunicação bluetooth
 #define srx 2
-#define stx 3
+#define stx 3 //pinos da comunicação serial do bluetooth
+#define Rservo 9
+#define Lservo 10
+#define Bservo 11 //pinos dos servos (devem tem habilitação pwm)
+#define amplitude 170 //amplitude maxima em graus que o servo vai para a dobra (0-180)
+#define dt 2000 //tempo em milisegundo que espera para executar cada movimento do servo
+
+const int longa = {1,2,1,2,0};
+const int curta = {2,1,2,0};
+const int regata = {2,1,0};
+//sequências de dobras 0 1 2 = b r l
 
 class BlueHandler{
   private:
@@ -46,21 +58,38 @@ class BlueHandler{
   bool Available(){
     return serial.available();
   }//retorna true se tem algo a ser lido
-};
+};//classe que lida com o envio e recebimento de mensagens via modulo bluetooth
 
-class servo{
-  public:
-    servo();
-};
-
-class dobrador{
-  public:
-    dobrador();
-};
-
-#define ledPin 13
+Servo right;
+Servo left;
+Servo bottom;
 BlueHandler blue(baudrate,srx,stx);//baud,rx,tx 
-int state = 0;
+
+void dobrar(int* seq){
+  for (int i = 0; i < sizeof(seq); ++i){
+    int dobra = seq[i];
+    switch(dobra){
+      case 0:
+        bottom.write(amplitude);
+        delay(dt);
+        bottom.write(0);
+        delay(dt);
+        break;
+      case 1:
+        bottom.write(amplitude);
+        delay(dt);
+        bottom.write(0);
+        delay(dt);
+        break;
+      case 2:
+        bottom.write(amplitude);
+        delay(dt);
+        bottom.write(0);
+        delay(dt);
+        break;
+    }
+  }
+}//função que executa as dobras de acordo com a sequencia de numeros recebida como parâmetro
 
 void setup() {
   pinMode(ledPin, OUTPUT);
@@ -74,24 +103,39 @@ void setup() {
   else{
     Serial.println("FALHA NA CONEXÃO BLUETOOTH")
   }
+
+  right.attach(Rservo);
+  left.attach(Lservo);
+  bottom.attach(Bservo);
+
+  String init = "Programa de dobra de camisetas iniciado\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+  Serial.println(init);
+  blue.Send(init);
 }
 
 void loop() {
-  if(blueSerial.available() > 0){ // Checks whether data is comming from the serial port
-    state = blueSerial.read(); // Reads the data from the serial port
-    Serial.print("leitura concluida:");
-    Serial.println(state);
- }
- if (state == '0') {
-  digitalWrite(ledPin, LOW); // Turn LED OFF
-  blueSerial.println("LED: OFF"); // Send back, to the phone, the String "LED: ON"
-  state = 0;
-  Serial.println("led: off");
- }
- else if (state == '1') {
-  digitalWrite(ledPin, HIGH);
-  blueSerial.println("LED: ON");;
-  state = 0;
-  Serial.println("led: on");
- } 
+  if(blue.Available()){
+    String msg = blue.Read();
+    String ret = "Dobra iniciada";
+    Serial.println(ret);
+    blue.Send(ret);
+    if(msg == "manga longa"){
+      dobrar(longa);
+      ret = "Dobra de manga longa executada";
+    }
+    else if(msg == "manga curta"){
+      dobrar(curta);
+      ret = "Dobra de manga curta executada";
+    }
+    else if(msg == "regata"){
+      dobrar(regata);
+      ret = "Dobra de regata executada";
+    }
+    else{
+      ret = "DOBRA INVÁLIDA\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+    }
+    Serial.println(ret);
+    blue.Send(ret);
+  }
+  delay(100);
 }

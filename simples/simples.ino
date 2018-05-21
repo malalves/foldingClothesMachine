@@ -16,57 +16,23 @@ int curta[] = {2,1,2,0};
 int regata[] = {2,1,0};
 //sequências de dobras 0 1 2 = b r l
 
-class BlueHandler{
-  private:
-    long int baud;
-    int brx, btx;
-    SoftwareSerial &bserial;
-    bool status;
-  public:  
-  BlueHandler(long int baud, int rx, int tx){
-    this->baud = baud;
-    this->brx = rx;
-    this->btx = tx;
-    this->status = false;
-    bserial = SoftwareSerial(rx,tx);
-  }//construtor instancia as variáveis e cria um software serial
-
-  void Conect(){
-    bserial.begin(baud);
-    status = true;
-  }//conecta com o software serial e muda o status para true
-
-  bool Status(){
-    return status;
-  }//retorna o status da conexão
-
-  void Send(String msg){
-    bserial.println(msg);
-    bserial.flush();
-  }//envia uma mensagem definida pelo usuário
-
-  String Read(){
-    String msg;
-    char data;
-    while(bserial.available()){
-      data = bserial.read();
-      delay(50);
-      msg+=data;
-    }
-    msg.toLowerCase();
-    return msg;
-  }//lê uma string recebida pelo módulo bluetooth
-
-  bool Available(){
-    return bserial.available();
-  }//retorna true se tem algo a ser lido
-};//classe que lida com o envio e recebimento de mensagens via modulo bluetooth
-
 Servo right;
 Servo left;
 Servo bottom;
-BlueHandler blue(baudrate,srx,stx);//baud,rx,tx 
+SoftwareSerial blue(srx,stx);//rx,tx 
 
+String Read(){
+  String msg;
+  char data;
+  while(blue.available()){
+    data = blue.read();
+    delay(50);
+    msg+=data;
+  }
+  msg.toLowerCase();
+  return msg;
+}//lê uma string recebida pelo módulo bluetooth
+  
 void dobrar(int* seq){
   for (int i = 0; i < sizeof(seq); ++i){
     int dobra = seq[i];
@@ -96,9 +62,8 @@ void dobrar(int* seq){
 int count=0;
 void setup() {
   Serial.begin(9600);
-  blue.Conect();
-  delay(dt);
-  if(blue.Status()){
+  blue.begin(baudrate);
+  if(blue){
     Serial.println("bluetooth conectado");
   }
   else{
@@ -114,18 +79,17 @@ void setup() {
   count++;
   Serial.println(init);
   Serial.flush();
-  blue.Send(init);
+  blue.println(init);
   delay(2000);
 }
 
 void loop() {
   Serial.println("estou vivo");
-  if(blue.Available()){
-    String msg = blue.Read();
+  if(blue.available()){
+    String msg = Read();
     String ret = "Dobra iniciada";
     Serial.println(ret);
-    Serial.flush();
-    blue.Send(ret);
+    blue.println(ret);
     if(msg == "manga longa"){
       dobrar(longa);
       ret = "Dobra de manga longa executada";
@@ -143,7 +107,7 @@ void loop() {
     }
     Serial.println(ret);
     Serial.flush();
-    blue.Send(ret);
+    blue.println(ret);
   }
   delay(100);
 }

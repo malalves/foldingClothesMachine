@@ -3,37 +3,37 @@
 
 
 #define baudrate 9600 //baudrate da comunicação bluetooth
-#define srx 2
-#define stx 3 //pinos da comunicação serial do bluetooth
+#define srx 6
+#define stx 7 //pinos da comunicação serial do bluetooth
 #define Rservo 9
 #define Lservo 10
 #define Bservo 11 //pinos dos servos (devem tem habilitação pwm)
 #define amplitude 170 //amplitude maxima em graus que o servo vai para a dobra (0-180)
 #define dt 2000 //tempo em milisegundo que espera para executar cada movimento do servo
 
-const int longa = {1,2,1,2,0};
-const int curta = {2,1,2,0};
-const int regata = {2,1,0};
+int longa[] = {1,2,1,2,0};
+int curta[] = {2,1,2,0};
+int regata[] = {2,1,0};
 //sequências de dobras 0 1 2 = b r l
 
 class BlueHandler{
   private:
     long int baud;
     int brx, btx;
-    SoftwareSerial bserial;
+    SoftwareSerial &bserial;
     bool status;
   public:  
   BlueHandler(long int baud, int rx, int tx){
-    this.baud = baud;
-    this.brx = rx;
-    this.btx = tx;
-    this.status = FALSE;
-    bserial = new SoftwareSerial (tx,rx);
+    this->baud = baud;
+    this->brx = rx;
+    this->btx = tx;
+    this->status = false;
+    bserial = SoftwareSerial(rx,tx);
   }//construtor instancia as variáveis e cria um software serial
 
   void Conect(){
     bserial.begin(baud);
-    status = TRUE;;
+    status = true;;
   }//conecta com o software serial e muda o status para true
 
   bool Status(){
@@ -41,14 +41,16 @@ class BlueHandler{
   }//retorna o status da conexão
 
   void Send(String msg){
-    serial.println(msg);
+    bserial.println(msg);
+    bserial.flush();
   }//envia uma mensagem definida pelo usuário
 
   String Read(){
     String msg;
     char data;
-    while(serial.available()){
-      data = serial.read();
+    while(bserial.available()){
+      data = bserial.read();
+      delay(50);
       msg+=data;
     }
     msg.toLowerCase();
@@ -56,7 +58,7 @@ class BlueHandler{
   }//lê uma string recebida pelo módulo bluetooth
 
   bool Available(){
-    return serial.available();
+    return bserial.available();
   }//retorna true se tem algo a ser lido
 };//classe que lida com o envio e recebimento de mensagens via modulo bluetooth
 
@@ -76,48 +78,53 @@ void dobrar(int* seq){
         delay(dt);
         break;
       case 1:
-        bottom.write(amplitude);
+        right.write(amplitude);
         delay(dt);
-        bottom.write(0);
+        right.write(0);
         delay(dt);
         break;
       case 2:
-        bottom.write(amplitude);
+        left.write(amplitude);
         delay(dt);
-        bottom.write(0);
+        left.write(0);
         delay(dt);
         break;
     }
   }
 }//função que executa as dobras de acordo com a sequencia de numeros recebida como parâmetro
 
+int count=0;
 void setup() {
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
   Serial.begin(9600);
-  
   blue.Conect();
+  delay(dt);
   if(blue.Status()){
     Serial.println("bluetooth conectado");
   }
   else{
-    Serial.println("FALHA NA CONEXÃO BLUETOOTH")
+    Serial.println("FALHA NA CONEXÃO BLUETOOTH");
   }
 
   right.attach(Rservo);
   left.attach(Lservo);
   bottom.attach(Bservo);
-
-  String init = "Programa de dobra de camisetas iniciado\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+  
+  String init = "Programa de dobra de camisetas iniciado";//\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+  Serial.println(count);
+  count++;
   Serial.println(init);
+  Serial.flush();
   blue.Send(init);
+  delay(2000);
 }
 
 void loop() {
+  Serial.println("estou vivo");
   if(blue.Available()){
     String msg = blue.Read();
     String ret = "Dobra iniciada";
     Serial.println(ret);
+    Serial.flush();
     blue.Send(ret);
     if(msg == "manga longa"){
       dobrar(longa);
@@ -135,6 +142,7 @@ void loop() {
       ret = "DOBRA INVÁLIDA\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
     }
     Serial.println(ret);
+    Serial.flush();
     blue.Send(ret);
   }
   delay(100);

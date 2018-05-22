@@ -26,6 +26,9 @@ String Read(){
   char data;
   while(blue.available()){
     data = blue.read();
+    if(data == '?'){
+      break;  
+    }
     delay(50);
     msg+=data;
   }
@@ -34,7 +37,9 @@ String Read(){
 }//lê uma string recebida pelo módulo bluetooth
   
 void dobrar(int* seq){
-  for (int i = 0; i < sizeof(seq); ++i){
+  int i=-1;
+  do{
+    i++;
     int dobra = seq[i];
     switch(dobra){
       case 0:
@@ -56,7 +61,7 @@ void dobrar(int* seq){
         delay(dt);
         break;
     }
-  }
+  }while(seq[i]!=0);
 }//função que executa as dobras de acordo com a sequencia de numeros recebida como parâmetro
 
 int count=0;
@@ -84,12 +89,13 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("estou vivo");
   if(blue.available()){
     String msg = Read();
-    String ret = "Dobra iniciada";
-    Serial.println(ret);
-    blue.println(ret);
+    Serial.println(msg);
+    String a = "Dobra iniciada";
+    String ret = "";
+    Serial.println(a);
+    blue.println(a);
     if(msg == "manga longa"){
       dobrar(longa);
       ret = "Dobra de manga longa executada";

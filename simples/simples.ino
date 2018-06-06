@@ -10,12 +10,15 @@
 #define Bservo 11 //pinos dos servos (devem tem habilitação pwm)
 #define amplitude 170 //amplitude maxima em graus que o servo vai para a dobra (0-180)
 #define dt 2000 //tempo em milisegundo que espera para executar cada movimento do servo
+#define Rend 2
+#define Lend 3
+#define Bend 4//pinos dos endstops (em pull down - lembrar de fazer essa conexão)
 
 int longa[] = {1,2,1,2,0};
 int curta[] = {2,1,2,0};
 int regata[] = {2,1,0};
 //sequências de dobras 0 1 2 = b r l
-
+int zero[] = {0,0,0};//zeros das posições dos servos
 Servo right;
 Servo left;
 Servo bottom;
@@ -32,27 +35,50 @@ String Read(){
   msg.toLowerCase();
   return msg;
 }//lê uma string recebida pelo módulo bluetooth
-  
+
+void calibrar(){
+  int pos;
+  pos=right.read();
+  While(!digitalRead(Rend)){
+    pos--;
+    rigt.write(pos--);
+    delay(10);
+  }
+  zero[1]=pos;
+  pos=left.read();
+  While(!digitalRead(Lend)){
+    pos--;
+    left.write(pos--);
+  }
+  zero[2]=pos;
+  pos=bottom.read();
+  While(!digitalRead(Bend)){
+    pos--;
+    bottom.write(pos--);
+  }
+  zero[0]=pos;
+} 
+
 void dobrar(int* seq){
   for (int i = 0; i < sizeof(seq); ++i){
     int dobra = seq[i];
     switch(dobra){
       case 0:
-        bottom.write(amplitude);
+        bottom.write(zero[dobra]+amplitude);
         delay(dt);
-        bottom.write(0);
+        bottom.write(zero[dobra]);
         delay(dt);
         break;
       case 1:
-        right.write(amplitude);
+        right.write(zero[dobra]+amplitude);
         delay(dt);
-        right.write(0);
+        right.write(zero[dobra]);
         delay(dt);
         break;
       case 2:
-        left.write(amplitude);
+        left.write(zero[dobra]+amplitude);
         delay(dt);
-        left.write(0);
+        left.write(zero[dobra]);
         delay(dt);
         break;
     }
@@ -69,6 +95,11 @@ void setup() {
   else{
     Serial.println("FALHA NA CONEXÃO BLUETOOTH");
   }
+  pinMode(Rend,INPUT);
+  pinMode(Lend,INPUT);
+  pinMode(Bend,INPUT);
+  
+  calibrar();
 
   right.attach(Rservo);
   left.attach(Lservo);

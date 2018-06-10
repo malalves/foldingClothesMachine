@@ -3,7 +3,7 @@
 #define Rservo 9
 #define Lservo 10
 #define Bservo 11 //pinos dos servos (devem tem habilitação pwm)
-#define amplitude 170 //amplitude maxima em graus que o servo vai para a dobra (0-180)
+#define amplitude 150 //amplitude maxima em graus que o servo vai para a dobra (0-180)
 #define dtrise 1000 //tempo em milisegundo que espera para executar subida
 #define dtfall 2000 //tempo em milisegundo que espera para executar descida
 #define Rend 2
@@ -65,7 +65,7 @@ void movimento(Servo &serv, int fim, int tempo){
     serv.write(inicio+i*angstep);
     delay(timestep);
   }
-}
+}//função de movimento controlado
 
 void dobrar(int* seq){
   for (int i = 0; i < sizeof(seq); ++i){
@@ -100,7 +100,7 @@ void setup() {
 
   calibrar();
   
-  String init = "Programa de dobra de camisetas iniciado";//\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+  String init = "Programa de dobra de camisetas iniciado\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
   Serial.println(init);
   Serial.flush();
   delay(2000);

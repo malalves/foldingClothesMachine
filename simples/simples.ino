@@ -8,11 +8,13 @@
 #define Rservo 9
 #define Lservo 10
 #define Bservo 11 //pinos dos servos (devem tem habilitação pwm)
-#define amplitude 170 //amplitude maxima em graus que o servo vai para a dobra (0-180)
-#define dt 2000 //tempo em milisegundo que espera para executar cada movimento do servo
+#define amplitude 150 //amplitude maxima em graus que o servo vai para a dobra (0-180)
+#define dtrise 1000 //tempo em milisegundo que espera para executar subida
+#define dtfall 2000 //tempo em milisegundo que espera para executar descida
 #define Rend 2
 #define Lend 3
 #define Bend 4//pinos dos endstops (em pull down - lembrar de fazer essa conexão)
+
 
 int longa[] = {1,2,1,2,0};
 int curta[] = {2,1,2,0};
@@ -62,34 +64,36 @@ void calibrar(){
   zero[0]=pos;
 } 
 
+void movimento(Servo &serv, int fim, int tempo){
+  const int timestep = 10;
+  int partes = tempo/timestep;
+  int inicio = serv.read();
+  float angstep = (fim-inicio)/partes;
+  for(int i=1;i<=partes;i++){
+    serv.write(inicio+i*angstep);
+    delay(timestep);
+  }
+}//função de movimento controlado
+
 void dobrar(int* seq){
-  int i=-1;
-  do{
-    i++;
+  for (int i = 0; i < sizeof(seq); ++i){
     int dobra = seq[i];
     switch(dobra){
       case 0:
-        bottom.write(zero[dobra]+amplitude);
-        delay(dt);
-        bottom.write(zero[dobra]);
-        delay(dt);
+        movimento(bottom, zero[dobra]+amplitude, dtrise);
+        movimento(bottom,zero[dobra],dtfall);
         break;
       case 1:
-        right.write(zero[dobra]+amplitude);
-        delay(dt);
-        right.write(zero[dobra]);
-        delay(dt);
+        movimento(right, zero[dobra]+amplitude, dtrise);
+        movimento(right,zero[dobra],dtfall);
         break;
       case 2:
-        left.write(zero[dobra]+amplitude);
-        delay(dt);
-        left.write(zero[dobra]);
-        delay(dt);
+        movimento(left, zero[dobra]+amplitude, dtrise);
+        movimento(left,zero[dobra],dtfall);
         break;
     }
-  }while(seq[i]!=0);
+  }
 }//função que executa as dobras de acordo com a sequencia de numeros recebida como parâmetro
-
 void setup() {
   Serial.begin(9600);
   blue.begin(baudrate);
@@ -102,12 +106,12 @@ void setup() {
   pinMode(Rend,INPUT);
   pinMode(Lend,INPUT);
   pinMode(Bend,INPUT);
-  
-  calibrar();
 
   right.attach(Rservo);
   left.attach(Lservo);
   bottom.attach(Bservo);
+
+  calibrar();
   
   String init = "Programa de dobra de camisetas iniciado";//\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
   Serial.println(init);
@@ -126,18 +130,18 @@ void loop() {
     blue.println(a);
     if(msg == "manga longa"){
       dobrar(longa);
-      ret = "Dobra de manga longa executada";
+      ret = "1";
     }
     else if(msg == "manga curta"){
       dobrar(curta);
-      ret = "Dobra de manga curta executada";
+      ret = "2";
     }
     else if(msg == "regata"){
       dobrar(regata);
-      ret = "Dobra de regata executada";
+      ret = "3";
     }
     else{
-      ret = "DOBRA INVÁLIDA\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
+      ret = "DOBRA INVÁLIDA";//\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
     }
     Serial.println(ret);
     Serial.flush();

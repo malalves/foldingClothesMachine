@@ -33,58 +33,76 @@ String Read(){
 
 void calibrar(){
   int pos;
-  pos=right.read();
-  while(!digitalRead(Rend)){
-    pos--;
-    right.write(pos--);
-    delay(100);
-  }
-  zero[1]=pos;
-  pos=left.read();
-  while(!digitalRead(Lend)){
-    pos--;
-    left.write(pos--);
-    delay(100);
-  }
-  zero[2]=pos;
+  bottom.attach(Bservo);
+  delay(500);
   pos=bottom.read();
   while(!digitalRead(Bend)){
-    pos--;
-    bottom.write(pos--);
+    pos++;
+    Serial.print("b:");
+    Serial.println(pos);
+    bottom.write(pos);
     delay(100);
   }
   zero[0]=pos;
+  right.attach(Rservo);
+  delay(500);
+  pos=right.read();
+  while(!digitalRead(Rend)){
+    pos--;
+    Serial.print("r:");
+    Serial.println(pos);
+    right.write(pos);
+    delay(100);
+  }
+  zero[1]=pos;
+  left.attach(Lservo);
+  delay(500);
+  pos=left.read();
+  while(!digitalRead(Lend)){
+    pos++;
+    Serial.print("l:");
+    Serial.println(pos);
+    left.write(pos);
+    delay(100);
+  }
+  zero[2]=pos;
 } 
 
 void movimento(Servo &serv, int fim, int tempo){
   const int timestep = 10;
   int partes = tempo/timestep;
   int inicio = serv.read();
-  float angstep = (fim-inicio)/partes;
+  float angstep = ((float)fim-(float)inicio)/(float)partes;
   for(int i=1;i<=partes;i++){
-    serv.write(inicio+i*angstep);
+    int ang = inicio+i*angstep;
+    serv.write(ang);
     delay(timestep);
   }
 }//função de movimento controlado
 
 void dobrar(int* seq){
-  for (int i = 0; i < sizeof(seq); ++i){
+  int i = -1;
+ do{
+    i++;  
     int dobra = seq[i];
     switch(dobra){
       case 0:
-        movimento(bottom, zero[dobra]+amplitude, dtrise);
+        movimento(bottom, zero[dobra]-amplitude, dtrise);
+        delay(100);
         movimento(bottom,zero[dobra],dtfall);
         break;
       case 1:
         movimento(right, zero[dobra]+amplitude, dtrise);
+        delay(100);
         movimento(right,zero[dobra],dtfall);
         break;
       case 2:
-        movimento(left, zero[dobra]+amplitude, dtrise);
+        movimento(left, zero[dobra]-amplitude, dtrise);
+        delay(100);
         movimento(left,zero[dobra],dtfall);
         break;
     }
-  }
+   }while(seq[i]!=0);
 }//função que executa as dobras de acordo com a sequencia de numeros recebida como parâmetro
 
 void setup() {
@@ -94,10 +112,6 @@ void setup() {
   pinMode(Lend,INPUT);
   pinMode(Bend,INPUT);
   
-  right.attach(Rservo);
-  left.attach(Lservo);
-  bottom.attach(Bservo);
-
   calibrar();
   
   String init = "Programa de dobra de camisetas iniciado\nDigite uma das opções a seguir:\n'manga longa' 'manga curta' 'regata'";
